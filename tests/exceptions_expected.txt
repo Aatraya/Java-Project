@@ -1,0 +1,19 @@
+OK
+OK
+OK
+OK
+ERROR member M99 not found
+ERROR item B99 not found
+ERROR member M99 not found
+ERROR R1 cannot be borrowed
+ERROR B1 is not on loan
+ERROR item B99 not found
+ERROR B1 is available
+OK due on day 14
+ERROR B1 is on loan
+ERROR M1 already has B1
+OK reserved
+ERROR M2 already reserved B1
+ERROR R1 cannot be borrowed
+ERROR member M99 not found
+ERROR item B99 not found
