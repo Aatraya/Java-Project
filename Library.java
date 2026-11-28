@@ -8,6 +8,10 @@ public class Library{
     private List<Reservation> reservations = new ArrayList<>();
     private static final String BAD_COMMAND = "Please check the command";
 
+    private static String fieldCountError(String cmd, int expected, int got) {
+        return "ERROR " + cmd + " expects " + (expected - 1) + " field(s) but got " + (got - 1);
+    }
+
 
     public int getMemberSize(){
         return members.size();
@@ -32,35 +36,34 @@ public class Library{
 
     }
 
-    public void addBook(String id, String title, String author) {
-         if (anyEmpty(id, title, author)) { System.out.println(BAD_COMMAND); return; }
+    
 
-        item.add(new Book(id, title, author));
-        System.out.println("OK");
-    }
+            public void addBook(String id, String title, String author) {
+            item.add(new Book(id, title, author));
+            System.out.println("OK");
+        }
 
-    public void addMagazine(String id , String title , String issue){
-        if (anyEmpty(id, title, issue)) { System.out.println(BAD_COMMAND); return; }
+        public void addMagazine(String id, String title, String issue) {
+            item.add(new Magazine(id, title, issue));
+            System.out.println("OK");
+        }
 
-        item.add(new Magazine(id,title,issue));
-        System.out.println("OK");
-    }
+        public void addReference(String id, String title, String author) {
+            item.add(new ReferenceBook(id, title, author));
+            System.out.println("OK");
+        }
 
-    public void addReference(String id, String title , String author){
-         if (anyEmpty(id, title, author)) { System.out.println(BAD_COMMAND); return; }
-        item.add(new ReferenceBook(id, title, author));
-        System.out.println("OK");
-    }
-
-    public void addMember(String id , String name , String type){
-        if (anyEmpty(id, name, type)) { System.out.println(BAD_COMMAND); return; }
-
-        if(type.equals("STUDENT")) members.add(new Student(id,name));
-        if(type.equals("STAFF")) members.add(new Staff(id , name));
-        if(type.equals("FACULTY")) members.add(new Faculty(id,name));
-
-        System.out.println("OK");
-    }
+        public void addMember(String id, String name, String type) {
+            if (type.equals("STUDENT"))      members.add(new Student(id, name));
+            else if (type.equals("STAFF"))   members.add(new Staff(id, name));
+            else if (type.equals("FACULTY")) members.add(new Faculty(id, name));
+            else {
+                System.out.println("ERROR invalid member type " + type
+                        + " (expected STUDENT, STAFF or FACULTY)");
+                return;
+            }
+            System.out.println("OK");
+        }
 
     private Loan findActiveLoan(String itemId) {
         for (Loan l : loans) {
@@ -335,12 +338,6 @@ public class Library{
     }
 
     
-        private static boolean anyEmpty(String... fields) {
-            for (String f : fields) {
-                if (f == null || f.isEmpty()) return true;
-            }
-            return false;
-        }
 
         private static int expectedFields(String cmd) {
             switch (cmd) {
@@ -374,18 +371,35 @@ public class Library{
         Scanner sc = new Scanner(System.in);
 
         while(sc.hasNextLine()){
-            String command = sc.nextLine().replace("\uFEFF", "");   
+            String command = sc.nextLine().replace("\uFEFF", "");
 
             if (command.trim().isEmpty()) continue;
 
-            String[] part = command.split("\\|", -1);              
+            String[] part = command.split("\\|", -1);
             for (int i = 0; i < part.length; i++) {
                 part[i] = part[i].trim();
             }
 
-            if (part.length != expectedFields(part[0])) {         
-                System.out.println(BAD_COMMAND);
+            int expected = expectedFields(part[0]);
+            if (expected == -1) {
+                System.out.println("ERROR unknown command " + part[0]);
                 continue;
+            }
+            if (part.length != expected) {
+                System.out.println(fieldCountError(part[0], expected, part.length));
+                continue;
+            }
+
+            // every field must be non-empty, except SEARCH text (empty matches all items)
+            if (!part[0].equals("SEARCH")) {
+                boolean emptyField = false;
+                for (int i = 1; i < part.length; i++) {
+                    if (part[i].isEmpty()) { emptyField = true; break; }
+                }
+                if (emptyField) {
+                    System.out.println("ERROR " + part[0] + " has an empty field");
+                    continue;
+                }
             }
 
           
@@ -424,17 +438,23 @@ public class Library{
                     }
 
                     case "ADVANCE": {
+                        int days;
                         try {
-                            int days = Integer.parseInt(part[1]);
-                            if (days < 0 || (long) lib.getTime() + days > Integer.MAX_VALUE) {
-                                System.out.println(BAD_COMMAND);
-                                break;
-                            }
-                            lib.setTime(lib.getTime() + days);
-                            System.out.println("OK today is day " + lib.getTime());
+                            days = Integer.parseInt(part[1]);
                         } catch (NumberFormatException e) {
-                            System.out.println(BAD_COMMAND);
+                            System.out.println("ERROR ADVANCE needs a whole number, got " + part[1]);
+                            break;
                         }
+                        if (days < 0) {
+                            System.out.println("ERROR ADVANCE cannot move time backwards");
+                            break;
+                        }
+                        if ((long) lib.getTime() + days > Integer.MAX_VALUE) {
+                            System.out.println("ERROR ADVANCE value is too large");
+                            break;
+                        }
+                        lib.setTime(lib.getTime() + days);
+                        System.out.println("OK today is day " + lib.getTime());
                         break;
                     }
 
@@ -464,9 +484,8 @@ public class Library{
                     }
 
                     default : {
-                        System.out.println("Please check the command");
+                        System.out.println("ERROR unknown command " + part[0]);
                     }
-
                 
             }
         }
